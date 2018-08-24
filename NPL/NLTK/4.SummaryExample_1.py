@@ -68,8 +68,8 @@ for sentence in sentences:
                 else:
                     sent2score[sentence] += word2count[word]
 
-# Gettings best 5 lines
-best_sentences = heapq.nlargest(5, sent2score, key=sent2score.get)
+# Gettings best 6 lines
+best_sentences = heapq.nlargest(6, sent2score, key=sent2score.get)
 
 print('---------------------------------------------------------')
 for sentence in best_sentences:
