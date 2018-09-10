@@ -48,9 +48,9 @@ def load_stories(location):
 
 
 # load articles
-start = time.clock()
+start = time.process_time()
 all_stories = load_stories(config.path)
-print ("Time Taken : {time} mins".format(time = (time.clock() - start)/60))
+print ("Time Taken : {time} mins".format(time = (time.process_time()  - start)/60))
 print('Loaded Stories %d' % len(all_stories))
 
 # Store data (serialize)
