@@ -39,7 +39,7 @@ def clean_lines(lines, remove_stopwords = True):
         line = [w.translate(table) for w in line]
 
         # remove tokens with numbers in them
-        # line = [word for word in line if word.isalpha()]
+        line = [word for word in line if word.isalpha()]
 
         # Optionally, remove stop words
         if remove_stopwords:
@@ -64,12 +64,19 @@ def count_words(count_dict, text):
 
 def vectorization (lines):
     '''Using FB enlish word2Vec pre-trained model'''
-    model = KeyedVectors.load_word2vec_format('path-to-vectors.txt', binary=False)
+    #model = KeyedVectors.load_word2vec_format('G:\Python\MLLearning\MachineLearning\data\wiki.en.vec', binary=False)
+    model = KeyedVectors.load_word2vec_format('G:\Python\MLLearning\MachineLearning\data\wiki-news-300d-1M.vec', binary=False)
 
+    vectors_set = list()
     for line in lines:
         # if you vector file is in binary format, change to binary=True
-        vectors_set = [model[w] for w in line]
-        return vectors_set
+        try:
+            word = [w for w in line]
+            vectors_set.append(model[word])
+        except KeyError:
+            print (word + " not in vocabulary")
+            c = 0
+    return vectors_set
 
 
 def missing_word_ratio(word_counts, embeddings_index) :
@@ -103,8 +110,10 @@ def main():
     count_words(word_counts, example['article'])
     print("Size of Vocabulary:", len(word_counts))
 
+    embeddings_index = list();
+    print ("creating embedding index .....")
     for example in all_stories:
-        embeddings_index = vectorization(example['article'])
+        embeddings_index.append(vectorization(example['article']))
 
     print('Word embeddings:', len(embeddings_index))
 
