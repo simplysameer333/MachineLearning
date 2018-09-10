@@ -1,6 +1,7 @@
 from os import listdir
 import time
 import pickle
+import config
 
 
 # load files into memory
@@ -47,16 +48,13 @@ def load_stories(location):
 
 
 # load articles
-base_path = 'G:\\AI\\data\\cnn\\'
-path = base_path + 'stories\\\sample\\'
-stories_pickle_filename = "news.pickle"
 start = time.clock()
-all_stories = load_stories(path)
+all_stories = load_stories(config.path)
 print ("Time Taken : {time} mins".format(time = (time.clock() - start)/60))
 print('Loaded Stories %d' % len(all_stories))
 
 # Store data (serialize)
-with open(base_path+stories_pickle_filename, 'wb') as handle:
+with open(config.base_path+config.stories_pickle_filename, 'wb') as handle:
     pickle.dump(all_stories, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
