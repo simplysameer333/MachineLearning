@@ -3,6 +3,8 @@ import pickle
 import string
 from gensim.models.keyedvectors import KeyedVectors
 import config
+import numpy as np
+import time
 #from pycontractions import Contractions
 
 # nltk.download()
@@ -11,6 +13,14 @@ import config
 
 # Stopword list
 stop_words = nltk.corpus.stopwords.words('english')
+
+# Load Model
+''' https://fasttext.cc/docs/en/english-vectors.html '''
+print ("Loading Pre-Trained Model ..... " )
+start = time.perf_counter()
+model = KeyedVectors.load_word2vec_format('G:\Python\MLLearning\MachineLearning\data\wiki-news-300d-1M.vec', binary=False)
+# model = KeyedVectors.load_word2vec_format('C:\Temp\python_files\MLLearning\data\wiki-news-300d-1M.vec', binary=False)
+print ("Loaded Pre-Trained Model, time taken",  ((time.perf_counter()  - start)/60))
 
 
 def clean_lines(lines, remove_stopwords = True):
@@ -62,35 +72,33 @@ def count_words(count_dict, text):
                 count_dict[word] += 1
 
 
-def vectorization (lines):
-    '''Using FB enlish word2Vec pre-trained model'''
-    #model = KeyedVectors.load_word2vec_format('G:\Python\MLLearning\MachineLearning\data\wiki.en.vec', binary=False)
-    model = KeyedVectors.load_word2vec_format('G:\Python\MLLearning\MachineLearning\data\wiki-news-300d-1M.vec', binary=False)
-
-    vectors_set = list()
-    for line in lines:
-        # if you vector file is in binary format, change to binary=True
+def vectorization (text, embeddings_index):
+    for sentence in text:
         try:
-            word = [w for w in line]
-            vectors_set.append(model[word])
+            for vocab_word in sentence.split():
+                embeddings_index[vocab_word] = model[vocab_word]
+                #print("Work : {vocab_word} , vector value : {vector_value}".format(vocab_word=vocab_word, vector_value =vector_value))
         except KeyError:
-            print (word + " not in vocabulary")
-            c = 0
-    return vectors_set
+            print("{vocab_word} not in vocabulary".format(vocab_word=vocab_word))
+            #embeddings_index[vocab_word] = -1
 
 
 def missing_word_ratio(word_counts, embeddings_index) :
     # Find the number of words that are missing from CN, and are used more than our threshold.
-    missing_words = 0
-    threshold = 20
+    missing_words_count = 0
+    missing_words = list()
 
     for word, count in word_counts.items():
-        if count > threshold:
-            if word not in embeddings_index:
-                missing_words += 1
+        #found_dim = embeddings_index.get(word, -1)
+        #print("{found_dim} is found_dim ".format(found_dim=found_dim))
+        #if found_dim == -1 and word not in missing_words:
+        if word not in embeddings_index and word not in missing_words :
+            missing_words_count += 1
+            missing_words.append(word)
+            print("{word} is missing ".format(word=word))
 
-    missing_ratio = round(missing_words / len(word_counts), 4) * 100
-    return missing_ratio, missing_words
+    missing_ratio = round(missing_words_count / len(word_counts), 4) * 100
+    return missing_ratio, missing_words_count
 
 
 def main():
@@ -100,30 +108,29 @@ def main():
         all_stories = pickle.load(handle)
 
     # clean stories
-    word_counts = {}
     for example in all_stories:
         example['article'] = clean_lines(example['article'].split('\n'))
         example['headlines'] = clean_lines(example['headlines'], remove_stopwords=False)
 
-    print (all_stories[1])
+    #print (all_stories[1])
+    word_counts = {}
+    for example in all_stories:
+        count_words(word_counts, example['article'])
 
-    count_words(word_counts, example['article'])
     print("Size of Vocabulary:", len(word_counts))
 
-    embeddings_index = list();
+    embeddings_index = {};
     print ("creating embedding index .....")
     for example in all_stories:
-        embeddings_index.append(vectorization(example['article']))
+        vectorization(example['article'], embeddings_index)
 
     print('Word embeddings:', len(embeddings_index))
 
     # find out missing words and thr %
-    missing_ratio, missing_words = missing_word_ratio(word_counts, embeddings_index)
+    missing_ratio, missing_words_count = missing_word_ratio(word_counts, embeddings_index)
 
-    print("Number of words missing from CN:", missing_words)
+    print("Number of words missing :", missing_words_count)
     print("Percent of words that are missing from vocabulary: {}%".format(missing_ratio))
-
-
 
 '''------- Read main ----------'''
 main()
