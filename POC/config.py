@@ -1,12 +1,15 @@
 base_path = 'G:\\AI\\data\\cnn\\'
-#base_path = '../data/cnn/'
-path = base_path + 'stories/sample/'
-#path = base_path + 'stories/'
-stories_pickle_filename = "news.pickle"
+#base_path = '..\\data\\cnn\\'
+path = base_path + 'sample_5k\\'
+#path = base_path + 'stories\\'
+articles_pickle_filename = "articles.pickle"
+headlines_pickle_filename = "headlines.pickle"
+model_pickle_filename = "model.pickle"
 word_embedding_matrix_filename = "word_embedding_matrix.pickle"
 
-# model_path ='G:\Python\MLLearning\MachineLearning\data\wiki-news-300d-1M.vec'
-model_path= 'C:\Temp\python_files\MLLearning\data\wiki-news-300d-1M.vec'
+''' https://fasttext.cc/docs/en/english-vectors.html '''
+model_path ='G:\Python\MLLearning\MachineLearning\data\wiki-news-300d-1M.vec'
+# model_path= 'C:\Temp\python_files\MLLearning\data\wiki-news-300d-1M.vec'
 
 # to avoid words that are used less that threshold value
 threshold = 2
