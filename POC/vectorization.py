@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 ''' Expected generated parameter
-clean_articles -> articles after removing impirities
+clean_articles -> articles after removing impurities
 sorted_articles -> articles sorted as the thr length
 sorted_headline -> headlines (sorted as per article length) as the thr length
 vocab_to_int -> interger values of all vocab words
