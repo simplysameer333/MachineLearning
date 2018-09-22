@@ -4,21 +4,37 @@ import config
 import numpy as np
 import pandas as pd
 import time
+from pathlib import Path
 
-
-# Load Model
-print("Loading Pre-Trained Model ..... ")
-start = time.perf_counter()
-#model = KeyedVectors.load_word2vec_format(config.model_path, binary=False)
-#with open(config.base_path + config.model_pickle_filename, 'wb') as handle:
-#    pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
-with open(config.base_path + config.model_pickle_filename, 'rb') as handle:
-    model = pickle.load(handle)
-print("Loaded Pre-Trained Model, time taken", ((time.perf_counter() - start) / 60))
+''' Expected generated parameter
+clean_articles -> articles after removing impirities
+sorted_articles -> articles sorted as the thr length
+sorted_headline -> headlines (sorted as per article length) as the thr length
+vocab_to_int -> interger values of all vocab words
+word_embedding_matrix -> 300 dim matrix for each word in vocab
+'''
 
 # Config values
 threshold = config.threshold
 embedding_dim = config.embedding_dim
+
+
+def create_or_load_model():
+    model_pickle = Path(config.base_path + config.model_pickle_filename)
+    if model_pickle.exists():
+        print("Loading Pre-Trained Model Pickle..... ")
+        start = time.perf_counter()
+        with open(config.base_path + config.model_pickle_filename, 'rb') as handle:
+            model = pickle.load(handle)
+        print("Loaded Pre-Trained Model Pickle, time taken", ((time.perf_counter() - start) / 60))
+    else:
+        print("Loading Pre-Trained Model  ..... ")
+        start = time.perf_counter()
+        model = KeyedVectors.load_word2vec_format(config.model_path, binary=False)
+        with open(config.base_path + config.model_pickle_filename, 'wb') as handle:
+            pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        print("Loaded Pre-Trained Model, time taken", ((time.perf_counter() - start) / 60))
+    return model
 
 
 def count_words(count_dict, text):
@@ -31,7 +47,7 @@ def count_words(count_dict, text):
                 count_dict[word] += 1
 
 
-def vectorization(text, embeddings_index):
+def vectorization(text, embeddings_index, model):
     for sentence in text:
         try:
             for vocab_word in sentence.split():
@@ -217,7 +233,7 @@ def sort_corplus(lengths_articles, int_rep_articles, int_rep_headlines, vocab_to
     return sorted_articles, sorted_headlines
 
 
-def main():
+def create_input_for_graph():
     # Load data (deserialize)
     with open(config.base_path + config.articles_pickle_filename, 'rb') as handle:
         clean_articles = pickle.load(handle)
@@ -225,10 +241,12 @@ def main():
     with open(config.base_path + config.headlines_pickle_filename, 'rb') as handle:
         clean_headlines = pickle.load(handle)
 
+    pre_trained_model = create_or_load_model()
+
     word_counts = {}
-    print("count  Articles")
+    print("counting  Articles")
     count_words(word_counts, clean_articles)
-    print("count  Headlines")
+    print("counting  Headlines")
     count_words(word_counts, clean_headlines)
 
     print("Total Stories : ", len(clean_headlines))
@@ -236,8 +254,8 @@ def main():
 
     print("creating embedding index .....")
     embeddings_index = {};
-    vectorization(clean_articles, embeddings_index)
-    vectorization(clean_headlines, embeddings_index)
+    vectorization(clean_articles, embeddings_index, pre_trained_model)
+    vectorization(clean_headlines, embeddings_index, pre_trained_model)
     print('Word embeddings:', len(embeddings_index))
 
     # find out missing words and thr %
@@ -265,6 +283,7 @@ def main():
     sorted_articles, sorted_headlines = sort_corplus(lengths_articles, int_repr_articles,
                                                      int_repr_headlines, vocab_to_int)
 
+    return vocab_to_int, word_embedding_matrix
 
 '''------- Read main ----------'''
-main()
+#create_input_for_graph()

@@ -15,6 +15,7 @@ import pickle
 stop_words = nltk.corpus.stopwords.words('english')
 lmtzr = nltk.WordNetLemmatizer().lemmatize
 
+
 # load files into memory
 def load_files(filename):
     # open the file as read only
