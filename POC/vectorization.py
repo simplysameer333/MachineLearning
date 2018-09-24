@@ -1,10 +1,12 @@
 import pickle
-from gensim.models.keyedvectors import KeyedVectors
-import config
-import numpy as np
-import pandas as pd
 import time
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from gensim.models.keyedvectors import KeyedVectors
+
+import config
 
 ''' Expected generated parameter
 clean_articles -> articles after removing impurities
@@ -283,7 +285,7 @@ def create_input_for_graph():
     sorted_articles, sorted_headlines = sort_corplus(lengths_articles, int_repr_articles,
                                                      int_repr_headlines, vocab_to_int)
 
-    return vocab_to_int, word_embedding_matrix
+    return sorted_articles, sorted_headlines, vocab_to_int, word_embedding_matrix
 
 '''------- Read main ----------'''
 # create_input_for_graph()

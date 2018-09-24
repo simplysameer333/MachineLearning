@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow.python.layers.core import Dense
+
 import config
 import vectorization
-
 
 print('TensorFlow Version: {}'.format(tf.__version__))
 
@@ -91,11 +91,13 @@ def train_decoding_layer(dec_embed_input, article_length, dec_cell, initial_stat
 
 
 def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initial_state, output_layer,
-                             max_article_length, batch_size):
+                             max_article_length, batch_size, encode_state):
     '''Create the inference logits'''
 
     start_tokens = tf.tile(tf.constant([start_token], dtype=tf.int32), [batch_size], name='start_tokens')
 
+    '''
+    For Basic decoder
     inference_helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings,
                                                                 start_tokens,
                                                                 end_token)
@@ -108,7 +110,24 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
     inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(inference_decoder,
                                                             output_time_major=False,
                                                             impute_finished=True,
-                                                            maximum_iterations=max_article_length)
+                                                            maximum_iterations=max_article_length) '''
+
+    beam_initial_state = dec_cell.zero_state(config.batch_size * config.beam_width, tf.float32)
+
+    inference_decoder = tf.contrib.seq2seq.BeamSearchDecoder(
+        cell=dec_cell,
+        embedding=embeddings,
+        start_tokens=start_tokens,
+        end_token=end_token,
+        initial_state=beam_initial_state,
+        beam_width=config.beam_width,
+        output_layer=output_layer,
+        length_penalty_weight=0.0)
+
+    inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(
+        decoder=inference_decoder,
+        impute_finished=False,
+        maximum_iterations=2 * max_article_length)
 
     return inference_logits
 
@@ -176,7 +195,8 @@ def decoding_layer(dec_embed_input, embeddings, enc_output, enc_state, vocab_siz
                                                     initial_state,
                                                     output_layer,
                                                     max_headline_length,
-                                                    batch_size)
+                                                    batch_size,
+                                                    enc_state)
 
     return training_logits, inference_logits
 
@@ -252,7 +272,10 @@ def build_graph(vocab_to_int, word_embedding_matrix):
         # Create tensors for the training logits and inference logits
         training_logits = tf.identity(training_logits.rnn_output, 'logits')
 
-        inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+        # used for basic decoder
+        # inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+
+        inference_logits = tf.identity(inference_logits.predicted_ids, name='predictions')
 
         # Create the weights for sequence_loss
         masks = tf.sequence_mask(headline_length, max_headline_length, dtype=tf.float32, name='masks')
@@ -273,7 +296,7 @@ def build_graph(vocab_to_int, word_embedding_matrix):
 
 def main():
     print ("Prepare input parameters ...")
-    vocab_to_int, word_embedding_matrix = vectorization.create_input_for_graph()
+    sorted_articles, sorted_headlines, vocab_to_int, word_embedding_matrix = vectorization.create_input_for_graph()
     print("Build Graph parameters ...")
     build_graph(vocab_to_int, word_embedding_matrix)
 
