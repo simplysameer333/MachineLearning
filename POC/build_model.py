@@ -18,13 +18,13 @@ keep_probability = config.keep_probability
 def model_inputs():
     '''Create palceholders for inputs to the model'''
 
-    input_data = tf.placeholder(tf.int32, [None, None], name='input')
+    input_data = tf.placeholder(tf.int32, [None, None], name='input_data')
     targets = tf.placeholder(tf.int32, [None, None], name='targets')
     lr = tf.placeholder(tf.float32, name='learning_rate')
     keep_prob = tf.placeholder(tf.float32, name='keep_prob')
-    headline_length = tf.placeholder(tf.int32, (None,), name='article_length')
-    max_headline_length = tf.reduce_max(headline_length, name='max_dec_len')
-    article_length = tf.placeholder(tf.int32, (None,), name='headline_length')
+    headline_length = tf.placeholder(tf.int32, (None,), name='headline_length')
+    max_headline_length = tf.reduce_max(headline_length, name='max_headline_length')
+    article_length = tf.placeholder(tf.int32, (None,), name='article_length')
 
     return input_data, targets, lr, keep_prob, headline_length, max_headline_length, article_length
 
@@ -96,8 +96,7 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
 
     start_tokens = tf.tile(tf.constant([start_token], dtype=tf.int32), [batch_size], name='start_tokens')
 
-    '''
-    For Basic decoder
+    # For Basic decoder
     inference_helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings,
                                                                 start_tokens,
                                                                 end_token)
@@ -108,10 +107,10 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
                                                         output_layer)
 
     inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(inference_decoder,
-                                                            output_time_major=False,
-                                                            impute_finished=True,
-                                                            maximum_iterations=max_article_length) '''
-
+                                                               output_time_major=False,
+                                                               impute_finished=True,
+                                                               maximum_iterations=max_article_length)
+    '''
     beam_initial_state = dec_cell.zero_state(config.batch_size * config.beam_width, tf.float32)
 
     inference_decoder = tf.contrib.seq2seq.BeamSearchDecoder(
@@ -127,7 +126,7 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
     inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(
         decoder=inference_decoder,
         impute_finished=False,
-        maximum_iterations=2 * max_article_length)
+        maximum_iterations=2 * max_article_length)'''
 
     return inference_logits
 
@@ -143,10 +142,12 @@ def decoding_layer(dec_embed_input, embeddings, enc_output, enc_state, vocab_siz
             dec_cell = tf.contrib.rnn.DropoutWrapper(lstm, input_keep_prob=keep_prob)
 
     # creating Dense- This is also called output layer. This will produce the summary.
-    output_layer = Dense(vocab_size, activation='relu', kernel_initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.1))
+    output_layer = Dense(vocab_size, activation='relu', kernel_initializer=
+    tf.truncated_normal_initializer(mean=0.0, stddev=0.1))
 
     # Using BahdanauAttention as one of the widely used Attention Algorithms
-    attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_size, enc_output, headline_length, normalize=False, name='BahdanauAttention')
+    attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_size, enc_output, headline_length,
+                                                     normalize=False, name='BahdanauAttention')
 
     dec_cell = tf.contrib.seq2seq.AttentionWrapper(dec_cell, attn_mech, rnn_size)
 
@@ -242,6 +243,7 @@ def seq2seq_model(input_data, target_data, keep_prob, article_length, headline_l
 
     return training_logits, inference_logits
 
+
 def build_graph(vocab_to_int, word_embedding_matrix):
     # Build the graph
     train_graph = tf.Graph()
@@ -273,9 +275,8 @@ def build_graph(vocab_to_int, word_embedding_matrix):
         training_logits = tf.identity(training_logits.rnn_output, 'logits')
 
         # used for basic decoder
-        # inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
-
-        inference_logits = tf.identity(inference_logits.predicted_ids, name='predictions')
+        inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+        # inference_logits = tf.identity(inference_logits.predicted_ids, name='predictions')
 
         # Create the weights for sequence_loss
         masks = tf.sequence_mask(headline_length, max_headline_length, dtype=tf.float32, name='masks')
@@ -292,7 +293,9 @@ def build_graph(vocab_to_int, word_embedding_matrix):
             capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
             train_op = optimizer.apply_gradients(capped_gradients)
     print("Graph is built.")
-
+    # input_data, targets, lr, keep_prob, headline_length, max_headline_length, article_length
+    return train_graph, train_op, cost, input_data, targets, lr, keep_prob, headline_length, max_headline_length, \
+           article_length
 
 def main():
     print ("Prepare input parameters ...")
@@ -302,5 +305,4 @@ def main():
 
 
 '''-------------------------main------------------------------'''
-main ()
-
+# main ()

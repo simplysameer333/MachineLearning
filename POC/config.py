@@ -16,10 +16,10 @@ threshold = 2
 
 # Dimension size as per pre-trained data
 embedding_dim = 300
-max_text_length = 1000
+max_text_length = 500
 max_summary_length = 20
 min_length = 2
-unk_text_limit = 200
+unk_text_limit = 100
 
 # Set the Hyperparameters
 epochs = 100
@@ -31,7 +31,7 @@ keep_probability = 0.75
 beam_width = 3
 
 # Training Hyperparameters
-start = 200000
+start = 0
 learning_rate_decay = 0.95
 min_learning_rate = 0.0005
 display_step = 20  # Check training loss after every 20 batches
