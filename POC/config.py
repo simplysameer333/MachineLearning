@@ -23,7 +23,7 @@ unk_text_limit = 100
 
 # Set the Hyperparameters
 epochs = 100
-batch_size = 64
+batch_size = 32
 rnn_size = 256
 num_layers = 2
 learning_rate = 0.005
@@ -34,7 +34,7 @@ beam_width = 3
 start = 0
 learning_rate_decay = 0.95
 min_learning_rate = 0.0005
-display_step = 20  # Check training loss after every 20 batches
+display_step = 10  # Check training loss after every 10 batches
 stop_early = 0
 stop = 3  # If the update loss does not decrease in 3 consecutive update checks, stop training
 per_epoch = 3  # Make 3 update checks per epoch

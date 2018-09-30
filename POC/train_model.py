@@ -36,10 +36,20 @@ def get_batches(headlines, articles, batch_size, vocab_to_int):
 
 
 def train_model(train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr, gen_keep_prob,
-                gen_headline_length, gen_max_headline_length, gen_article_length, update_check,
-                sorted_headlines_short, sorted_articles_short, checkpoint, vocab_to_int):
+                gen_headline_length, gen_max_headline_length, gen_article_length,
+                sorted_headlines_short, sorted_articles_short, vocab_to_int):
     # Record the update losses for saving improvements in the model
     headlines_update_loss = []
+
+    # name given to checkpoint
+    checkpoint = "best_model.ckpt"
+
+    # This make sures that in one epoch it only checked as per value specified of per_epoch
+    # e.g if length of article is 4000 the => 4000 / 32 (bath size) = > 125 (it means we will have 125 loops in 1 epoch)
+    # then 125 / 3 - 1 = 40 (so while covering 125 iteartion per epoch after 40 iteration it will check and print the loss)
+    update_check = (len(sorted_articles_short) // config.batch_size // config.per_epoch) - 1
+    print("init value of update_check", update_check)
+
     with tf.Session(graph=train_graph) as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -68,8 +78,9 @@ def train_model(train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr
                 end_time = time.time()
                 batch_time = end_time - start_time
 
+                # This prints status after value specified in display_step. Helps to to see progress
                 if batch_i % config.display_step == 0 and batch_i > 0:
-                    print('Epoch {:>3}/{} Batch {:>4}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
+                    print('Epoch {}/{} Batch {}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
                           .format(epoch_i,
                                   config.epochs,
                                   batch_i,
@@ -78,8 +89,9 @@ def train_model(train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr
                                   batch_time * config.display_step))
                     batch_loss = 0
 
+                # print loss value after after steps specified in update_check
                 if batch_i % update_check == 0 and batch_i > 0:
-                    print("Average loss for this update:", round(update_loss / config.update_check, 3))
+                    print("Average loss for this update:", round(update_loss / update_check, 3))
                     headlines_update_loss.append(update_loss)
 
                     # If the update loss is at a new minimum, save the model
@@ -113,7 +125,8 @@ def main():
     train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr, gen_keep_prob, gen_headline_length, gen_max_headline_length, \
     gen_article_length = build_model.build_graph(vocab_to_int, word_embedding_matrix)
 
-    # Subset the data for training
+    # Subset the data for training, this is used to check if steps are working fine.
+    # In actual run whole data should be taken
     start = config.start
     end = start + 4000
 
@@ -124,12 +137,9 @@ def main():
     print("The shortest text length:", len(sorted_articles_short[0]))
     print("The longest text length:", len(sorted_articles_short[-1]))
 
-    update_check = (len(sorted_articles_short) // config.batch_size // config.per_epoch) - 1
-    checkpoint = "best_model.ckpt"
-
     train_model(train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr, gen_keep_prob,
-                gen_headline_length, gen_max_headline_length, gen_article_length, update_check,
-                sorted_headlines_short, sorted_articles_short, checkpoint, vocab_to_int)
+                gen_headline_length, gen_max_headline_length, gen_article_length,
+                sorted_headlines_short, sorted_articles_short, vocab_to_int)
 
 
 '''-------------------------main------------------------------'''

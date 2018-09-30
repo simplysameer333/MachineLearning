@@ -4,8 +4,6 @@ from tensorflow.python.layers.core import Dense
 import config
 import vectorization
 
-print('TensorFlow Version: {}'.format(tf.__version__))
-
 # Getting the Hyperparameters
 epochs = config.epochs
 batch_size = config.batch_size
@@ -62,7 +60,7 @@ def encoding_layer(rnn_size, article_length, num_layers, rnn_inputs, keep_prob):
             cell_bw = tf.contrib.rnn.LSTMCell(rnn_size, initializer=tf.random_uniform_initializer(-0.1, 0.1, seed=2))
             cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=keep_prob)
 
-            # Bidirectional as it si more optimized, spl with Dropouts
+            # Bidirectional as it is more optimized, spl with Dropouts
             enc_output, enc_state = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, rnn_inputs, article_length, dtype=tf.float32)
 
     # Join outputs since we are using a bidirectional RNN
@@ -71,12 +69,12 @@ def encoding_layer(rnn_size, article_length, num_layers, rnn_inputs, keep_prob):
     return enc_output, enc_state
 
 
-def train_decoding_layer(dec_embed_input, article_length, dec_cell, initial_state, output_layer,
-                            max_headline_length):
+def train_decoding_layer(dec_embed_input, headline_length, dec_cell, initial_state, output_layer, max_headline_length):
     '''Create the training logits'''
 
+    # for training : read inputs from dense ground truth vector
     training_helper = tf.contrib.seq2seq.TrainingHelper(inputs=dec_embed_input,
-                                                        sequence_length=article_length,
+                                                        sequence_length=headline_length,
                                                         time_major=False)
 
     training_decoder = tf.contrib.seq2seq.BasicDecoder(dec_cell,
@@ -85,18 +83,20 @@ def train_decoding_layer(dec_embed_input, article_length, dec_cell, initial_stat
                                                        output_layer)
 
     training_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(training_decoder, impute_finished=True,
+                                                              output_time_major=False,
                                                               maximum_iterations = max_headline_length)
 
     return training_logits
 
 
 def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initial_state, output_layer,
-                             max_article_length, batch_size, encode_state):
+                             max_headline_length, batch_size):
     '''Create the inference logits'''
 
     start_tokens = tf.tile(tf.constant([start_token], dtype=tf.int32), [batch_size], name='start_tokens')
-
+    '''
     # For Basic decoder
+    # GreedyEmbeddingHelper - > Select top probability output
     inference_helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings,
                                                                 start_tokens,
                                                                 end_token)
@@ -109,7 +109,7 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
     inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(inference_decoder,
                                                                output_time_major=False,
                                                                impute_finished=True,
-                                                               maximum_iterations=max_article_length)
+                                                               maximum_iterations=max_headline_length)
     '''
     beam_initial_state = dec_cell.zero_state(config.batch_size * config.beam_width, tf.float32)
 
@@ -126,7 +126,7 @@ def inference_decoding_layer(embeddings, start_token, end_token, dec_cell, initi
     inference_logits, _, _ = tf.contrib.seq2seq.dynamic_decode(
         decoder=inference_decoder,
         impute_finished=False,
-        maximum_iterations=2 * max_article_length)'''
+        maximum_iterations=2 * max_headline_length)
 
     return inference_logits
 
@@ -146,7 +146,7 @@ def decoding_layer(dec_embed_input, embeddings, enc_output, enc_state, vocab_siz
     tf.truncated_normal_initializer(mean=0.0, stddev=0.1))
 
     # Using BahdanauAttention as one of the widely used Attention Algorithms
-    attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_size, enc_output, headline_length,
+    attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_size, enc_output, article_length,
                                                      normalize=False, name='BahdanauAttention')
 
     dec_cell = tf.contrib.seq2seq.AttentionWrapper(dec_cell, attn_mech, rnn_size)
@@ -176,16 +176,17 @@ def decoding_layer(dec_embed_input, embeddings, enc_output, enc_state, vocab_siz
     #                                                                )
 
     # initializing the initial state, layer it would be update by output from one cell
-    initial_state = dec_cell.zero_state(batch_size=batch_size, dtype=tf.float32)
+    # initial_state = dec_cell.zero_state(batch_size=batch_size, dtype=tf.float32)
+    initial_state = dec_cell.zero_state(batch_size=batch_size, dtype=enc_state[0].dtype).clone(cell_state=enc_state[0])
 
     # Creating training logits - which would be used during training dataset
     with tf.variable_scope("decode"):
         training_logits = train_decoding_layer(dec_embed_input,
-                                                  article_length,
-                                                  dec_cell,
-                                                  initial_state,
-                                                  output_layer,
-                                                  max_headline_length)
+                                               headline_length,
+                                               dec_cell,
+                                               initial_state,
+                                               output_layer,
+                                               max_headline_length)
 
     # Creating inference logits - which would produce output using train model
     with tf.variable_scope("decode", reuse=True):
@@ -196,8 +197,7 @@ def decoding_layer(dec_embed_input, embeddings, enc_output, enc_state, vocab_siz
                                                     initial_state,
                                                     output_layer,
                                                     max_headline_length,
-                                                    batch_size,
-                                                    enc_state)
+                                                    batch_size)
 
     return training_logits, inference_logits
 
@@ -274,9 +274,10 @@ def build_graph(vocab_to_int, word_embedding_matrix):
         # Create tensors for the training logits and inference logits
         training_logits = tf.identity(training_logits.rnn_output, 'logits')
 
+        # inference_logits would be used while predicting the summary
         # used for basic decoder
-        inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
-        # inference_logits = tf.identity(inference_logits.predicted_ids, name='predictions')
+        # inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+        inference_logits = tf.identity(inference_logits.predicted_ids, name='predictions')
 
         # Create the weights for sequence_loss
         masks = tf.sequence_mask(headline_length, max_headline_length, dtype=tf.float32, name='masks')
@@ -298,6 +299,7 @@ def build_graph(vocab_to_int, word_embedding_matrix):
            article_length
 
 def main():
+    print('TensorFlow Version: {}'.format(tf.__version__))  # we are using 1.10
     print ("Prepare input parameters ...")
     sorted_articles, sorted_headlines, vocab_to_int, word_embedding_matrix = vectorization.create_input_for_graph()
     print("Build Graph parameters ...")
@@ -305,4 +307,4 @@ def main():
 
 
 '''-------------------------main------------------------------'''
-# main ()
+#main ()

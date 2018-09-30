@@ -1,11 +1,12 @@
-import nltk
-from os import listdir
-import time
-import config
-from nltk.corpus import wordnet
-import re
 import pickle
+import re
+import time
+from os import listdir
 
+import nltk
+from nltk.corpus import wordnet
+
+import config
 
 # Stopword list
 # nltk.download()
@@ -162,3 +163,5 @@ def main():
 
 '''-------------------------main------------------------------'''
 main()
+
+''' FULL process takes 12 hours 15 mins'''

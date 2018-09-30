@@ -178,40 +178,10 @@ def unk_counter(sentence, vocab_to_int):
     return unk_count
 
 
-def sort_corplus_old(lengths_articles, int_rep_articles, int_rep_headlines, vocab_to_int):
-    ''' Sort the summaries and texts by the length of the texts, shortest to longest
-     Limit the length of summaries and texts based on the min and max ranges.
-     Remove reviews that include too many UNKs'''
-
-    sorted_articles = []
-    sorted_headlines = []
-    max_text_length = config.max_text_length
-    max_summary_length = config.max_summary_length
-    min_length = config.min_length
-    unk_text_limit = config.unk_text_limit
-    unk_summary_limit = 0
-
-    for length in range(min(lengths_articles.counts), max_text_length):
-        # print("length ===", length)
-        for count, words in enumerate(int_rep_headlines):
-            if (len(int_rep_articles[count]) >= min_length and
-                    unk_counter(int_rep_headlines[count], vocab_to_int) <= unk_summary_limit
-                    and unk_counter(int_rep_articles[count]) <= unk_text_limit
-                    and length == len(int_rep_articles[count], vocab_to_int)):
-                sorted_headlines.append(int_rep_headlines[count])
-                sorted_articles.append(int_rep_articles[count])
-
-    # Compare lengths to ensure they match
-    print(len(sorted_headlines))
-    print(len(sorted_articles))
-
-    return sorted_articles, sorted_headlines
-
-
 def sort_corplus(lengths_articles, int_rep_articles, int_rep_headlines, vocab_to_int):
-    ''' Sort the summaries and texts by the length of the texts, shortest to longest
-     Limit the length of summaries and texts based on the min and max ranges.
-     Remove reviews that include too many UNKs'''
+    ''' Sort the summaries and texts by the length of the texts, shortest to longest.
+        Limit the length of summaries and texts based on the min and max ranges. This is required so that while creating
+        batch it does not put lots of padding. Remove reviews that include too many UNKs'''
 
     sorted_articles = []
     sorted_headlines = []
