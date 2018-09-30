@@ -130,10 +130,11 @@ def main():
     start = config.start
     end = start + 4000
 
-    print("The shortest text length:", len(sorted_headlines))
+    print("Total Articles that we have for this run :", len(sorted_articles))
     # Train the Model
     sorted_headlines_short = sorted_headlines[start:end]
     sorted_articles_short = sorted_articles[start:end]
+    print("Total Articles samples taken for this run :", len(sorted_articles_short))
     print("The shortest text length:", len(sorted_articles_short[0]))
     print("The longest text length:", len(sorted_articles_short[-1]))
 
