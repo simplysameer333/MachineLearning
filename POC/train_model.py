@@ -7,11 +7,13 @@ import build_model
 import config
 import vectorization
 
-
+# This could later be improved as tensorflow provide that put padding by it owns.
 def pad_sentence_batch(sentence_batch, vocab_to_int):
     """Pad sentences with <PAD> so that each sentence of a batch has the same length"""
     max_sentence = max([len(sentence) for sentence in sentence_batch])
-    return [sentence + [vocab_to_int['<PAD>']] * (max_sentence - len(sentence)) for sentence in sentence_batch]
+    padded_batch  = [sentence + [vocab_to_int['<PAD>']] * (max_sentence - len(sentence)) for sentence in sentence_batch]
+    # print ("padded  ==== > ", padded_batch)
+    return padded_batch
 
 
 def get_batches(headlines, articles, batch_size, vocab_to_int):
@@ -51,6 +53,10 @@ def train_model(train_graph, train_op, cost, gen_input_data, gen_targets, gen_lr
     print("init value of update_check", update_check)
 
     with tf.Session(graph=train_graph) as sess:
+        # This is to show graph in tensorboard
+        # G:\Python\MLLearning\MachineLearning\POC > tensorboard --logdir = logs - -port 6006
+        # TensorBoard 1.10.0 at http: // Sam: 6006(Press CTRL + C to quit)
+        writer = tf.summary.FileWriter('logs', graph=sess.graph)
         sess.run(tf.global_variables_initializer())
 
         # If we want to continue training a previous session
