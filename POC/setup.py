@@ -26,3 +26,5 @@ setup(
 
     # could also include long_description, download_url, classifiers, etc.
 )
+
+# python setup.py install
