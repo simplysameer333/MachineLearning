@@ -2,7 +2,7 @@ import re
 
 sentence = "I was born in the year 1985"
 sentence2 = ""
-print (sentence)
+
 
 # match any cahracter
 print (re.match(r".*", sentence))
